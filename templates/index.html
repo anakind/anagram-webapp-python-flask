@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:v-on="http://www.w3.org/1999/xhtml" xmlns:v-bind="http://www.w3.org/1999/xhtml">
+
+<head>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <title>Arctic Wolf Challenge</title>
+
+  <!-- Bootstrap core CSS -->
+  <link href="../static/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Custom styles for this template -->
+  <link href="../static/css/heroic-features.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+  <!-- Navigation -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+    <div class="container">
+      <a class="navbar-brand" href="#">Arctic Wolf Challenge - by Anakin Ting</a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+    </div>
+  </nav>
+
+  <div id="app">
+
+    <!-- Page Content -->
+    <div class="container">
+
+      <header class="my-4">
+        <h1 class="display-4 my_title">Check words anagram!</h1>
+        <p class="lead">Input two words and check if they are anagram (assume case insensitive)</p>
+        <p>
+          Example: Earth and heart are anagram, while grove and groove are not <br>
+          All cases are insensitive<br>
+          All spaces will be removed (in case you like "Tom Marvolo Riddle" and "I am Lord Voldemort")<br>
+        </p>
+        <input v-model="firstWord" class="input-group-sm" v-bind:class="{error: !firstValid}" placeholder="First word" type="text" id="firstWord" name="firstWord">
+        <input v-model="secondWord" class="input-group-sm" v-bind:class="{error: !secondValid}" placeholder="Second word" type="text" id="secondWord" name="secondWord">
+        <a href="#" id="check" v-on:click="checkAnagrams" class="btn btn-primary">Request to check!</a>
+        <p class="embed-responsive">Result: <span v-bind:class="{yes_answer: result, no_answer: !result}">[[resultMessage]]</span></p>
+      </header>
+
+      <div class="jumbotron h-100">
+        <h4 class="card-title">List of top 10 requests of anagram words so far</h4>
+        <ul>
+          <li class="card-text" v-for="item in topTen" :key="item.request">
+            Number of requests: [[ item.times ]], Request: [[ item.request ]]
+          </li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Bootstrap core JavaScript -->
+  <script src="../static/vendor/jquery/jquery.min.js"></script>
+  <script src="../static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+<!--  <script src="https://cdn.jsdelivr.net/npm/vue@2.6.12/dist/vue.js"></script>-->
+  <script src="../static/vue/vue.js"></script>
+<!--  <script src="https://cdn.jsdelivr.net/npm/vue-resource@1.5.1"></script>-->
+  <script src="../static/vue/vue-resource.js"></script>
+
+<!--  vue code-->
+  <script>
+    var app = new Vue({
+      el: '#app',
+      delimiters: ['[[', ']]'],
+      data: {
+        firstWord: "",
+        secondWord: "",
+        firstValid: true,
+        secondValid: true,
+        resultMessage: "",
+        result: false,
+        topTen:[]
+      },
+      mounted: function () {
+        this.refreshTopTen(false);
+      },
+      methods: {
+
+        // Check if two words are anagrams
+        checkAnagrams: function () {
+          this.resultMessage = "";
+          this.firstValid = true;
+          this.secondValid = true;
+
+          // get ride of any spaces if sentence is given
+          this.firstWord = this.firstWord.replace(/ /g, '');
+          this.secondWord = this.secondWord.replace(/ /g, '');
+
+          // update the warning if word empty
+          if (this.firstWord === "") {
+            this.firstValid = false;
+          }
+          if (this.secondWord === "") {
+            this.secondValid = false;
+          }
+
+          // check the words anagrams only if both words not empty
+          if (this.firstValid && this.secondValid) {
+            this.$http.get('/check_anagram?firstWord=' + this.firstWord + '&secondWord=' + this.secondWord)
+                    .then(checkResponse => {
+                      // show the check result
+                      this.resultMessage = "\"" + this.firstWord + "\"" + " and " + "\"" + this.secondWord + "\" " + checkResponse.body.message;
+                      this.result = checkResponse.body.result;
+
+                      // if the words are anagram, update and refresh the static of top 10 requests
+                      this.refreshTopTen(checkResponse.body.result);
+
+                    })
+          }
+        },
+
+        // Refresh the top 10 requests, add the words to static if necessary
+        refreshTopTen: function (needInsert) {
+          let reqestURL = '/refresh_topten';
+          if (needInsert) {
+            reqestURL += '?firstWord=' + this.firstWord + '&secondWord=' + this.secondWord;
+          }
+          this.$http.get(reqestURL)
+                  .then(refreshResponse => {
+                    this.topTen = refreshResponse.body.result
+                  })
+         }
+      }
+    })
+
+  </script>
+  <style lang="less" scoped>
+    .my_title {
+      color: #007bff;
+    }
+
+    .no_answer {
+      color: red;
+    }
+    .yes_answer {
+      color: green;
+    }
+    .error {
+      position: relative;
+      animation: shake .1s linear;
+      animation-iteration-count: 3;
+      border: 1px solid red;
+      outline: none;
+    }
+
+    @keyframes shake {
+      0% {
+        left: -5px;
+      }
+      100% {
+        right: -5px;
+      }
+    }
+  </style>
+
+</body>
+
+</html>
